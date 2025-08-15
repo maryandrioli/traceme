@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TraceMe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .game-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .player-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border: 3px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .player-section.active {
+            border-color: #28a745;
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .player-section.completed {
+            border-color: #007bff;
+            background: #e7f3ff;
+        }
+
+        .player-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .player-title.player-a {
+            color: #dc3545;
+        }
+
+        .player-title.player-b {
+            color: #007bff;
+        }
+
+        .canvas-container {
+            position: relative;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .grid-canvas, .drawing-canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        .grid-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .drawing-canvas {
+            position: relative;
+            z-index: 2;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .status.waiting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.drawing {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status.ready {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .score-section {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .score-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .celebration {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .celebration.show {
+            display: block;
+            animation: celebrationPop 0.5s ease-out;
+        }
+
+        @keyframes celebrationPop {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Jogo de Reprodução de Traçados</h1>
+            <p>Pessoa A desenha, Pessoa B reproduz!</p>
+        </div>
+
+        <div class="instructions">
+            <strong>Como jogar:</strong> A Pessoa A desenha um traçado na grade. Depois, a Pessoa B deve reproduzir exatamente o mesmo caminho passando pelos mesmos pontos quadriculados.
+        </div>
+
+        <div class="game-container">
+            <!-- Seção Pessoa A -->
+            <div class="player-section active" id="sectionA">
+                <h2 class="player-title player-a">👤 Pessoa A - Criador</h2>
+                
+                <div class="status drawing" id="statusA">
+                    Desenhe seu traçado na grade!
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="gridCanvasA" class="grid-canvas" width="400" height="400"></canvas>
+                    <canvas id="drawingCanvasA" class="drawing-canvas" width="400" height="400"></canvas>
+                </div>
+
+                <div class="controls">
+                    <button id="clearA" class="btn-danger">🗑️ Limpar</button>
+                    <button id="finishA" class="btn-success">✅ Finalizar Desenho</button>
+                </div>
+
+                <div class="score-section" id="scoreA">
+                    <div class="score-item">
+                        <span>Pontos desenhados:</span>
+                        <span class="score-value" id="pointsA">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção Pessoa B -->
+            <div class="player-section" id="sectionB">
+                <h2 class="player-title player-b">👤 Pessoa B - Reprodutor</h2>
+                
+                <div class="status waiting" id="statusB">
+                    Aguardando Pessoa A terminar...
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="gridCanvasB" class="grid-canvas" width="400" height="400"></canvas>
+                    <canvas id="drawingCanvasB" class="drawing-canvas" width="400" height="400"></canvas>
+                    <canvas id="referenceCanvasB" class="grid-canvas" width="400" height="400"></canvas>
+                </div>
+
+                <div class="controls">
+                    <button id="clearB" class="btn-danger" disabled>🗑️ Limpar</button>
+                    <button id="checkB" class="btn-primary" disabled>🎯 Verificar</button>
+                    <button id="showHint" class="btn-warning" disabled>💡 Dica</button>
+                </div>
+
+                <div class="score-section" id="scoreB">
+                    <div class="score-item">
+                        <span>Precisão:</span>
+                        <span class="score-value" id="accuracyB">0%</span>
+                    </div>
+                    <div class="score-item">
+                        <span>Pontos corretos:</span>
+                        <span class="score-value" id="correctPointsB">0</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressB">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls" style="text-align: center; padding: 20px;">
+            <button id="newGame" class="btn-success">🔄 Novo Jogo</button>
+        </div>
+    </div>
+Criado por Mary Grace Andrioli, com apoio de IA (Claude GPT)
+    <!-- Overlay e celebração -->
+    <div class="overlay" id="overlay"></div>
+    <div class="celebration" id="celebration">
+        <h2>🎉 Parabéns!</h2>
+        <p id="celebrationText"></p>
+        <button onclick="closeCelebration()" class="btn-primary">Continuar</button>
+    </div>
+
+    <script>
+        class CollaborativeDrawingGame {
+            constructor() {
+                this.gridSize = 20;
+                this.canvasSize = 400;
+                this.gamePhase = 'drawing'; // 'drawing', 'reproducing', 'finished'
+                
+                this.playerAPoints = new Set();
+                this.playerBPoints = new Set();
+                this.isDrawingA = false;
+                this.isDrawingB = false;
+                this.hintShown = false;
+                
+                this.setupCanvases();
+                this.setupEventListeners();
+                this.drawGrids();
+                this.updateUI();
+            }
+
+            setupCanvases() {
+                // Canvas da Pessoa A
+                this.gridCanvasA = document.getElementById('gridCanvasA');
+                this.drawingCanvasA = document.getElementById('drawingCanvasA');
+                this.gridCtxA = this.gridCanvasA.getContext('2d');
+                this.drawingCtxA = this.drawingCanvasA.getContext('2d');
+
+                // Canvas da Pessoa B
+                this.gridCanvasB = document.getElementById('gridCanvasB');
+                this.drawingCanvasB = document.getElementById('drawingCanvasB');
+                this.referenceCanvasB = document.getElementById('referenceCanvasB');
+                this.gridCtxB = this.gridCanvasB.getContext('2d');
+                this.drawingCtxB = this.drawingCanvasB.getContext('2d');
+                this.referenceCtxB = this.referenceCanvasB.getContext('2d');
+
+                // Configurar contextos
+                [this.drawingCtxA, this.drawingCtxB].forEach(ctx => {
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                });
+            }
+
+            setupEventListeners() {
+                // Eventos do mouse para Pessoa A
+                this.drawingCanvasA.addEventListener('mousedown', (e) => this.startDrawingA(e));
+                this.drawingCanvasA.addEventListener('mousemove', (e) => this.drawA(e));
+                this.drawingCanvasA.addEventListener('mouseup', () => this.stopDrawingA());
+                this.drawingCanvasA.addEventListener('mouseout', () => this.stopDrawingA());
+
+                // Eventos touch para Pessoa A
+                this.drawingCanvasA.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const rect = this.drawingCanvasA.getBoundingClientRect();
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.drawingCanvasA.dispatchEvent(mouseEvent);
+                });
+
+                this.drawingCanvasA.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.drawingCanvasA.dispatchEvent(mouseEvent);
+                });
+
+                this.drawingCanvasA.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.drawingCanvasA.dispatchEvent(new MouseEvent('mouseup', {}));
+                });
+
+                // Eventos do mouse para Pessoa B
+                this.drawingCanvasB.addEventListener('mousedown', (e) => this.startDrawingB(e));
+                this.drawingCanvasB.addEventListener('mousemove', (e) => this.drawB(e));
+                this.drawingCanvasB.addEventListener('mouseup', () => this.stopDrawingB());
+                this.drawingCanvasB.addEventListener('mouseout', () => this.stopDrawingB());
+
+                // Eventos touch para Pessoa B
+                this.drawingCanvasB.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.drawingCanvasB.dispatchEvent(mouseEvent);
+                });
+
+                this.drawingCanvasB.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.drawingCanvasB.dispatchEvent(mouseEvent);
+                });
+
+                this.drawingCanvasB.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.drawingCanvasB.dispatchEvent(new MouseEvent('mouseup', {}));
+                });
+
+                // Botões
+                document.getElementById('clearA').addEventListener('click', () => this.clearA());
+                document.getElementById('finishA').addEventListener('click', () => this.finishDrawingA());
+                document.getElementById('clearB').addEventListener('click', () => this.clearB());
+                document.getElementById('checkB').addEventListener('click', () => this.checkAccuracy());
+                document.getElementById('showHint').addEventListener('click', () => this.showHint());
+                document.getElementById('newGame').addEventListener('click', () => this.newGame());
+            }
+
+            drawGrids() {
+                [this.gridCtxA, this.gridCtxB].forEach(ctx => {
+                    ctx.clearRect(0, 0, this.canvasSize, this.canvasSize);
+                    ctx.strokeStyle = '#e0e0e0';
+                    ctx.lineWidth = 1;
+
+                    // Linhas verticais
+                    for (let x = 0; x <= this.canvasSize; x += this.gridSize) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, 0);
+                        ctx.lineTo(x, this.canvasSize);
+                        ctx.stroke();
+                    }
+
+                    // Linhas horizontais
+                    for (let y = 0; y <= this.canvasSize; y += this.gridSize) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(this.canvasSize, y);
+                        ctx.stroke();
+                    }
+                });
+            }
+
+            getGridPosition(x, y) {
+                const rect = event.target.getBoundingClientRect();
+                const canvasX = x - rect.left;
+                const canvasY = y - rect.top;
+                
+                const gridX = Math.floor(canvasX / this.gridSize);
+                const gridY = Math.floor(canvasY / this.gridSize);
+                
+                return { gridX, gridY };
+            }
+
+            startDrawingA(e) {
+                if (this.gamePhase !== 'drawing') return;
+                this.isDrawingA = true;
+                const pos = this.getGridPosition(e.clientX, e.clientY);
+                this.addPointA(pos.gridX, pos.gridY);
+            }
+
+            drawA(e) {
+                if (!this.isDrawingA || this.gamePhase !== 'drawing') return;
+                const pos = this.getGridPosition(e.clientX, e.clientY);
+                this.addPointA(pos.gridX, pos.gridY);
+            }
+
+            stopDrawingA() {
+                this.isDrawingA = false;
+            }
+
+            addPointA(gridX, gridY) {
+                const key = `${gridX},${gridY}`;
+                if (this.playerAPoints.has(key)) return;
+
+                this.playerAPoints.add(key);
+                this.drawSquare(this.drawingCtxA, gridX, gridY, '#dc3545');
+                this.updatePointsA();
+            }
+
+            startDrawingB(e) {
+                if (this.gamePhase !== 'reproducing') return;
+                this.isDrawingB = true;
+                const pos = this.getGridPosition(e.clientX, e.clientY);
+                this.addPointB(pos.gridX, pos.gridY);
+            }
+
+            drawB(e) {
+                if (!this.isDrawingB || this.gamePhase !== 'reproducing') return;
+                const pos = this.getGridPosition(e.clientX, e.clientY);
+                this.addPointB(pos.gridX, pos.gridY);
+            }
+
+            stopDrawingB() {
+                this.isDrawingB = false;
+            }
+
+            addPointB(gridX, gridY) {
+                const key = `${gridX},${gridY}`;
+                if (this.playerBPoints.has(key)) return;
+
+                this.playerBPoints.add(key);
+                
+                // Verificar se o ponto está correto
+                const isCorrect = this.playerAPoints.has(key);
+                const color = isCorrect ? '#28a745' : '#ffc107';
+                
+                this.drawSquare(this.drawingCtxB, gridX, gridY, color);
+                this.updateScoreB();
+            }
+
+            drawSquare(ctx, gridX, gridY, color) {
+                const x = gridX * this.gridSize;
+                const y = gridY * this.gridSize;
+                
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, this.gridSize, this.gridSize);
+                
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, this.gridSize, this.gridSize);
+            }
+
+            clearA() {
+                this.playerAPoints.clear();
+                this.drawingCtxA.clearRect(0, 0, this.canvasSize, this.canvasSize);
+                this.updatePointsA();
+            }
+
+            clearB() {
+                this.playerBPoints.clear();
+                this.drawingCtxB.clearRect(0, 0, this.canvasSize, this.canvasSize);
+                this.updateScoreB();
+            }
+
+            finishDrawingA() {
+                if (this.playerAPoints.size === 0) {
+                    alert('Desenhe algo primeiro!');
+                    return;
+                }
+
+                this.gamePhase = 'reproducing';
+                this.updateUI();
+                this.showReferencePattern();
+            }
+
+            showReferencePattern() {
+                // Mostrar padrão de referência transparente no canvas B
+                this.referenceCtxB.clearRect(0, 0, this.canvasSize, this.canvasSize);
+                
+                for (const point of this.playerAPoints) {
+                    const [gridX, gridY] = point.split(',').map(Number);
+                    const x = gridX * this.gridSize;
+                    const y = gridY * this.gridSize;
+                    
+                    this.referenceCtxB.fillStyle = 'rgba(220, 53, 69, 0.2)';
+                    this.referenceCtxB.fillRect(x, y, this.gridSize, this.gridSize);
+                    this.referenceCtxB.strokeStyle = 'rgba(220, 53, 69, 0.4)';
+                    this.referenceCtxB.lineWidth = 1;
+                    this.referenceCtxB.strokeRect(x, y, this.gridSize, this.gridSize);
+                }
+            }
+
+            showHint() {
+                if (this.hintShown) return;
+                
+                // Destacar alguns pontos corretos
+                const pointsArray = Array.from(this.playerAPoints);
+                const hintCount = Math.min(3, pointsArray.length);
+                
+                for (let i = 0; i < hintCount; i++) {
+                    const point = pointsArray[i];
+                    const [gridX, gridY] = point.split(',').map(Number);
+                    const x = gridX * this.gridSize;
+                    const y = gridY * this.gridSize;
+                    
+                    this.referenceCtxB.fillStyle = 'rgba(40, 167, 69, 0.6)';
+                    this.referenceCtxB.fillRect(x, y, this.gridSize, this.gridSize);
+                }
+                
+                this.hintShown = true;
+                document.getElementById('showHint').disabled = true;
+            }
+
+            checkAccuracy() {
+                const correctPoints = Array.from(this.playerBPoints).filter(point => 
+                    this.playerAPoints.has(point)
+                ).length;
+
+                const totalOriginalPoints = this.playerAPoints.size;
+                const accuracy = totalOriginalPoints > 0 ? (correctPoints / totalOriginalPoints) * 100 : 0;
+
+                if (accuracy >= 90) {
+                    this.showCelebration('Perfeito!', `Precisão: ${accuracy.toFixed(1)}%`);
+                } else if (accuracy >= 70) {
+                    this.showCelebration('Muito bom!', `Precisão: ${accuracy.toFixed(1)}%`);
+                } else {
+                    this.showCelebration('Continue tentando!', `Precisão: ${accuracy.toFixed(1)}%`);
+                }
+
+                this.gamePhase = 'finished';
+                this.updateUI();
+            }
+
+            showCelebration(title, message) {
+                document.getElementById('celebrationText').textContent = message;
+                document.getElementById('celebration').querySelector('h2').textContent = title;
+                document.getElementById('overlay').style.display = 'block';
+                document.getElementById('celebration').classList.add('show');
+            }
+
+            newGame() {
+                this.gamePhase = 'drawing';
+                this.playerAPoints.clear();
+                this.playerBPoints.clear();
+                this.hintShown = false;
+                
+                this.drawingCtxA.clearRect(0, 0, this.canvasSize, this.canvasSize);
+                this.drawingCtxB.clearRect(0, 0, this.canvasSize, this.canvasSize);
+                this.referenceCtxB.clearRect(0, 0, this.canvasSize, this.canvasSize);
+                
+                this.updatePointsA();
+                this.updateScoreB();
+                this.updateUI();
+            }
+
+            updatePointsA() {
+                document.getElementById('pointsA').textContent = this.playerAPoints.size;
+            }
+
+            updateScoreB() {
+                const correctPoints = Array.from(this.playerBPoints).filter(point => 
+                    this.playerAPoints.has(point)
+                ).length;
+
+                const totalOriginalPoints = this.playerAPoints.size;
+                const accuracy = totalOriginalPoints > 0 ? (correctPoints / totalOriginalPoints) * 100 : 0;
+
+                document.getElementById('accuracyB').textContent = `${accuracy.toFixed(1)}%`;
+                document.getElementById('correctPointsB').textContent = `${correctPoints}/${totalOriginalPoints}`;
+                
+                const progressBar = document.getElementById('progressB');
+                progressBar.style.width = `${accuracy}%`;
+                progressBar.textContent = `${accuracy.toFixed(0)}%`;
+            }
+
+            updateUI() {
+                const sectionA = document.getElementById('sectionA');
+                const sectionB = document.getElementById('sectionB');
+                const statusA = document.getElementById('statusA');
+                const statusB = document.getElementById('statusB');
+
+                // Botões
+                const clearB = document.getElementById('clearB');
+                const checkB = document.getElementById('checkB');
+                const showHint = document.getElementById('showHint');
+
+                if (this.gamePhase === 'drawing') {
+                    sectionA.classList.add('active');
+                    sectionA.classList.remove('completed');
+                    sectionB.classList.remove('active');
+                    sectionB.classList.remove('completed');
+                    
+                    statusA.textContent = 'Desenhe seu traçado na grade!';
+                    statusA.className = 'status drawing';
+                    statusB.textContent = 'Aguardando Pessoa A terminar...';
+                    statusB.className = 'status waiting';
+
+                    clearB.disabled = true;
+                    checkB.disabled = true;
+                    showHint.disabled = true;
+                } else if (this.gamePhase === 'reproducing') {
+                    sectionA.classList.remove('active');
+                    sectionA.classList.add('completed');
+                    sectionB.classList.add('active');
+                    sectionB.classList.remove('completed');
+                    
+                    statusA.textContent = 'Desenho finalizado! ✅';
+                    statusA.className = 'status ready';
+                    statusB.textContent = 'Reproduza o desenho da Pessoa A!';
+                    statusB.className = 'status drawing';
+
+                    clearB.disabled = false;
+                    checkB.disabled = false;
+                    showHint.disabled = false;
+                } else if (this.gamePhase === 'finished') {
+                    sectionA.classList.remove('active');
+                    sectionA.classList.add('completed');
+                    sectionB.classList.remove('active');
+                    sectionB.classList.add('completed');
+                    
+                    statusA.textContent = 'Desenho finalizado! ✅';
+                    statusA.className = 'status ready';
+                    statusB.textContent = 'Jogo finalizado! 🎉';
+                    statusB.className = 'status ready';
+
+                    clearB.disabled = true;
+                    checkB.disabled = true;
+                    showHint.disabled = true;
+                }
+            }
+        }
+
+        // Funções globais
+        function closeCelebration() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('celebration').classList.remove('show');
+        }
+
+        // Inicializar o jogo
+        document.addEventListener('DOMContentLoaded', () => {
+            new CollaborativeDrawingGame();
+        });
+
+        // Fechar celebração ao clicar no overlay
+        document.getElementById('overlay').addEventListener('click', closeCelebration);
+    </script>
+</body>
+</html>
